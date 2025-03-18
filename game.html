@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+canvas {
+    border:3px solid black;
+    background-image: url('media/farm.jpg');
+}
+
+#musicButton {
+    position: absolute;
+    top: 20px; /* Adjust this value to move the button up or down */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 24px; 
+    padding: 15px 30px; /* Increase padding to make the button larger */
+    background-color: darkred;
+    color: white;
+    border: 3px 3px 3px black;
+    cursor: pointer;
+    border-radius: 5px;
+    
+}
+
+#musicButton:hover {
+    background-color: #00796b;
+}
+
+
+.control-button {
+    font-size: 24px; 
+    padding: 15px 35px;
+    background-color: #4CAF50; /* Green background */
+    color: white; /* White text */
+    border: 3px 3px 3px black; 
+    border-radius: 10px; /* Rounded corners */
+    cursor: pointer; /* Pointer cursor on hover */
+    margin: 10px; /* Add some spacing between buttons */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+    transition: background-color 0.3s ease; 
+}
+
+.control-button:hover {
+    background-color: #45a049; 
+}
+
+.control-button:active {
+    background-color: #3e8e41; /* Even darker green when clicked */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Smaller shadow when clicked */
+}
+</style>
+</head>
+<body onload="startGame()">
+    <audio id="gameOverSound" src="media/horse.mp3"></audio>
+    <audio id="backgroundMusic" src="media/theme.mp3" loop></audio>
+    <button id="musicButton">Start Music</button>
+<script>
+
+var myGamePiece;
+var myObstacles = [];
+var myScore;
+var myLevel;
+
+document.getElementById('musicButton').addEventListener('click', function() {
+    document.getElementById('backgroundMusic').play();
+});
+
+function startGame() {
+    myGamePiece = new component(160, 150, "media/horse1.png", 10, 400, "image");
+    myScore = new component("30px", "Roboto", "black", 75, 80, "text");
+    myLevel = new component("30px", "Roboto", "black", 80, 40, "text");
+    document.getElementById('backgroundMusic').play();
+    myGameArea.start();
+    
+}
+
+var myGameArea = {
+    canvas : document.createElement("canvas"),
+    start : function() {
+        this.canvas.width = 1900;
+        this.canvas.height = 650;
+        this.context = this.canvas.getContext("2d");
+        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+        this.frameNo = 0;
+        this.interval = setInterval(updateGameArea, 10);
+        },
+    clear : function() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+    stop : function() {
+        clearInterval(this.interval);
+    }
+}
+
+function component(width, height, color, x, y, type) {
+    this.type = type;
+    if (type == "image") {
+        this.image = new Image();
+        this.image.src = color;
+    }
+    this.width = width;
+    this.height = height;
+    this.speedX = 0;
+    this.speedY = 0;    
+    this.x = x;
+    this.y = y;    
+    this.update = function() {
+        ctx = myGameArea.context;
+        if (this.type == "text") {
+            ctx.font = this.width + " " + this.height;
+            ctx.fillStyle = color;
+            ctx.fillText(this.text, this.x, this.y);
+        }
+        else if (type == "image") {
+            ctx.drawImage(this.image, 
+                this.x, 
+                this.y,
+                this.width, this.height);
+        }  
+        else {
+            ctx.fillStyle = color;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        }
+    }
+    this.newPos = function() {
+        this.x += this.speedX;
+        this.y += this.speedY;        
+    }
+    this.crashWith = function(otherobj) {
+        var myleft = this.x;
+        var myright = this.x + (this.width);
+        var mytop = this.y + 15;
+        var mybottom = this.y + (this.height) - 19;
+        var otherleft = otherobj.x;
+        var otherright = otherobj.x + (otherobj.width);
+        var othertop = otherobj.y;
+        var otherbottom = otherobj.y + (otherobj.height);
+        var crash = true;
+        if ((mybottom < othertop) || (mytop > otherbottom) || (myright < otherleft) || (myleft > otherright)) {
+            crash = false;
+        }
+        return crash;
+    }
+}
+function updateGameArea() {
+    var x, height, gap, minHeight, maxHeight, minGap, maxGap, fenceHeight, fenceY, minFenceHeight, maxFenceHeight; // Added minFenceHeight, maxFenceHeight
+    for (i = 0; i < myObstacles.length; i += 1) {
+        if (myGamePiece.crashWith(myObstacles[i])) {
+            myGameArea.stop();
+        // Play game over sound
+        document.getElementById('gameOverSound').play();
+
+        // Pause background music
+        document.getElementById('backgroundMusic').pause();
+            return;
+        }
+    }
+    myGameArea.clear();
+    myGameArea.frameNo += 1;
+    if (myGameArea.frameNo == 1 || everyinterval(150)) {
+        x = myGameArea.canvas.width;
+        minHeight = 20;
+        maxHeight = 200;
+        height = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
+        minGap = 100;
+        maxGap = 200;
+        gap = Math.floor(Math.random() * (maxGap - minGap + 1) + minGap);
+
+        minFenceHeight = 100; // Set minimum fence height
+        maxFenceHeight = 400; // Set maximum fence height
+        fenceHeight = Math.floor(Math.random() * (maxFenceHeight - minFenceHeight + 1) + minFenceHeight); // Random height
+        fenceY = myGameArea.canvas.height - fenceHeight; // Calculate y for bottom position
+        myObstacles.push(new component(30, fenceHeight, "media/fence.png", x, fenceY, "image"));
+    }
+    for (i = 0; i < myObstacles.length; i += 1) {
+        myObstacles[i].speedX = -2.5;
+        myObstacles[i].newPos();
+        myObstacles[i].update();
+    }
+    myScore.text = "SCORE: " + myGameArea.frameNo;
+    myScore.update();
+    myLevel.text = "Level: " + Math.round(myGameArea.frameNo / 500);
+    myLevel.update();
+    myGamePiece.newPos();
+    myGamePiece.update();
+}
+
+function everyinterval(n) {
+    if ((myGameArea.frameNo / n) % 1 == 0) {return true;}
+    return false;
+}
+
+function moveup() {
+    myGamePiece.speedY = -2; 
+}
+
+function movedown() {
+    myGamePiece.speedY = 2; 
+}
+
+function moveleft() {
+    myGamePiece.speedX = -2; 
+}
+
+function moveright() {
+    myGamePiece.speedX = 2; 
+}
+
+function clearmove() {
+    myGamePiece.speedX = 0; 
+    myGamePiece.speedY = 0; 
+}
+</script>
+<div style="text-align:center;width:1900px;background-color:darkred;">
+  <button class="control-button" onmousedown="moveup()" onmouseup="clearmove()" ontouchstart="moveup()">UP</button><br><br>
+  <button class="control-button" onmousedown="moveleft()" onmouseup="clearmove()" ontouchstart="moveleft()">LEFT</button>
+  <button class="control-button" onmousedown="moveright()" onmouseup="clearmove()" ontouchstart="moveright()">RIGHT</button><br><br>
+  <button class="control-button" onmousedown="movedown()" onmouseup="clearmove()" ontouchstart="movedown()">DOWN</button>
+</div>
+<h1>Help Cooper Jump the Obstacles!</h1>
+</body>
+</html>
